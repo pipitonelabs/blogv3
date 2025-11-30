@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.0.2...v1.0.3) (2025-11-30)
+
+### 🐛 Bug Fixes
+
+* top menu fix ([d1c78bb](https://github.com/pipitonelabs/pipitonelabs.com/commit/d1c78bb0af8d63aa7504f0eb44fe234afaff0352))
+
 ## [1.0.2](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.0.1...v1.0.2) (2025-11-30)
 
 ### 🐛 Bug Fixes
