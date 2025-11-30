@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.0.0...v1.0.1) (2025-11-30)
+
+### 🐛 Bug Fixes
+
+* correcting semantic issue ([4ef97d1](https://github.com/pipitonelabs/pipitonelabs.com/commit/4ef97d12295f9d151e727f39b71a8cfd96b0f554))
+
 ## 1.0.0 (2025-11-30)
 
 ### 🚀 Features
