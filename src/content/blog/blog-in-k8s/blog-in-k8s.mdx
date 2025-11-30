@@ -39,7 +39,7 @@ The heart of my CI/CD pipeline is the `build-k8s.yaml` GitHub Actions workflow. 
 The workflow runs on pushes to `main` or manual dispatch. It outputs image metadata for easy consumption by deployment tools.
 
 ```yaml
-# From [.github/workflows/build-k8s.yaml](https://github.com/pipitonelabs/blogv2/blob/main/.github/workflows/build-k8s.yaml)
+# From [.github/workflows/build-k8s.yaml](https://github.com/pipitonelabs/pipitonelabs.com/blob/main/.github/workflows/build-k8s.yaml)
 jobs:
   release:
     name: Semantic Release & Build Image
@@ -88,7 +88,7 @@ The HelmRelease specifies the image tag (updated manually or via automation):
 containers:
   main:
     image:
-      repository: ghcr.io/pipitonelabs/blogv2
+      repository: ghcr.io/pipitonelabs/pipitonelabs.com
       tag: v1.0.7
 ```
 
@@ -140,4 +140,4 @@ If you'd like to replicate this setup:
 2. Configure Flux in your cluster.
 3. Integrate External-DNS and Envoy Gateway.
 
-Check out the [repository](https://github.com/joepipitone/blogv3) for full configs!
+Check out the [repository](https://github.com/pipitonelabs/pipitonelabs.com) for full configs!
