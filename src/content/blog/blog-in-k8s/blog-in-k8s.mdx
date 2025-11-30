@@ -1,0 +1,143 @@
+---
+title: Deploying My Astro Blog in a Self-Hosted Kubernetes Homelab
+description: 'A comprehensive guide to deploying an Astro blog in a self-hosted Kubernetes homelab using GitHub Actions and Renovate.'
+publishDate: 2025-11-30
+tags:
+  - Kubernetes
+  - Astro
+  - GitHub Actions
+  - Renovate
+  - Flux
+  - DevOps
+  - Homelab
+heroImage: { src: './kubernetes.svg', color: '#1567c5ff', width: 100, height: 100 }
+draft: true
+---
+
+Running a personal blog in a self-hosted Kubernetes cluster has been an exciting journey. It combines the power of modern DevOps practices with the control of managing your own infrastructure. In this post, I'll walk you through how I set up continuous deployment for my Astro-based blog, from code commits to public access via `blog.pipitonelabs.com`.
+
+## Overview of the Setup
+
+My homelab Kubernetes cluster handles the entire lifecycle: building container images, managing dependencies, deploying updates, and exposing the service securely. Here's the high-level flow:
+
+1. **Code Changes**: Push to the main branch triggers automated builds and releases.
+2. **Dependency Updates**: Renovate detects package updates and creates pull requests.
+3. **Deployment**: Flux (via HelmRelease) deploys new images automatically.
+4. **Networking**: External-DNS creates DNS records, Envoy Gateway exposes the service, and Cloudflare Tunnel secures external access.
+
+Let's dive into each component.
+
+## Continuous Integration with GitHub Actions
+
+The heart of my CI/CD pipeline is the `build-k8s.yaml` GitHub Actions workflow. It uses semantic versioning to create releases based on commit messages.
+
+### Key Features:
+- **Semantic Release**: Analyzes commit messages (e.g., `feat:`, `fix:`) to determine version bumps.
+- **Docker Build**: Creates multi-platform images and pushes to GitHub Container Registry (GHCR).
+- **Tagging Strategy**: Generates version tags like `v1.2.3`, `v1.2`, `v1`, and SHA-based tags for flexibility.
+
+The workflow runs on pushes to `main` or manual dispatch. It outputs image metadata for easy consumption by deployment tools.
+
+```yaml
+# From [.github/workflows/build-k8s.yml](https://github.com/pipitonelabs/blogv2/blob/main/.github/workflows/build-k8s.yml)
+jobs:
+  release:
+    name: Semantic Release & Build Image
+    runs-on: ubuntu-latest
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+  build-and-push:
+    name: Build and Push Docker Image
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
+```
+
+This ensures only meaningful changes trigger new deployments, reducing unnecessary builds.
+
+## Automated Dependency Management with Renovate
+
+Keeping dependencies up-to-date is crucial for security and features. I use Renovate, configured via a GitHub Actions workflow (`renovate.yaml`), to automate this process.
+
+### How It Works:
+- **Scheduled Runs**: Executes hourly to check for updates.
+- **PR Creation**: When new versions are detected, Renovate creates pull requests with changelogs.
+- **Merging Triggers Deployment**: Once I merge a PR, the CI pipeline builds a new image, and Flux deploys it.
+
+The workflow uses a GitHub App for authentication, ensuring secure access without personal tokens.
+
+```yaml
+# From [.github/workflows/renovate.yaml](https://github.com/pipitonelabs/k8s-gitops/blob/main/.github/workflows/renovate.yaml)
+- name: Run Renovate
+  uses: renovatebot/github-action@03026bd55840025343414baec5d9337c5f9c7ea7 # v44.0.4
+  env:
+    LOG_LEVEL: "${{ inputs.logLevel || 'debug' }}"
+    RENOVATE_AUTODISCOVER: true
+    RENOVATE_AUTODISCOVER_FILTER: "${{ github.repository }}"
+```
+
+This setup keeps my blog current with the latest Astro, Node.js, and other dependencies without manual intervention.
+
+## Deployment with Helm and Flux
+
+For deployment, I use Flux's HelmRelease powered by the [bjw-s-labs/app-template](https://github.com/bjw-s-labs/helm-charts) chart. This replaces writing full custom Helm charts for every app with concise `values.yaml` files (50–150 lines). It leverages the mature `bjw-s/common` library for best practices like security contexts, probes, topology spread, Gateway API routes, and schema validation. A single chart upgrade propagates features and fixes across all my apps instantly, keeping my Git repo lean and drift-free.
+
+The HelmRelease specifies the image tag (updated manually or via automation):
+
+```yaml
+containers:
+  main:
+    image:
+      repository: ghcr.io/pipitonelabs/blogv2
+      tag: v1.0.7
+```
+
+Flux watches for new image tags and automatically updates the deployment. This GitOps approach ensures the cluster state matches the desired configuration.
+
+## Networking and Exposure
+
+Getting the blog accessible from the internet involves several layers:
+
+### External-DNS, Envoy Gateway, and Cloudflare Tunnel
+
+The HelmRelease configures the route directly:
+
+```yaml
+# Continued from HelmRelease above
+  route:
+    app:
+      hostnames:
+        - blog.pipitonelabs.com
+      parentRefs:
+        - name: envoy-external
+          namespace: networking
+```
+
+External-DNS syncs the hostname to DNS, Envoy Gateway (via `envoy-external`) handles ingress routing, and Cloudflare Tunnel provides secure exposure without open ports.
+
+### Envoy Gateway
+Acts as the ingress controller, routing external traffic to internal services. It supports advanced features like TLS termination and load balancing.
+
+### Cloudflare Tunnel
+Provides secure, encrypted tunnels from my homelab to Cloudflare's edge. This avoids exposing ports directly on my home network, enhancing security.
+
+Together, these tools create a seamless path from `https://blog.pipitonelabs.com` to my Kubernetes pods.
+
+## Conclusion
+
+This setup demonstrates the power of combining open-source tools for a robust, automated deployment pipeline. From local development to global access, every step is streamlined and secure.
+
+The beauty of Kubernetes in a homelab is the learning opportunity—it mirrors production environments while giving full control. If you're considering a similar setup, start small: get a basic deployment working, then layer on automation.
+
+Have you deployed personal projects in Kubernetes? I'd love to hear your experiences in the comments!
+
+---
+
+## Next Steps
+
+If you'd like to replicate this setup:
+1. Set up semantic-release in your repo.
+2. Configure Flux in your cluster.
+3. Integrate External-DNS and Envoy Gateway.
+
+Check out the [repository](https://github.com/joepipitone/blogv3) for full configs!
