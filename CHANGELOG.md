@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.0.1...v1.0.2) (2025-11-30)
+
+### 🐛 Bug Fixes
+
+* fixing workflow and updated draft blog post ([b5b07d4](https://github.com/pipitonelabs/pipitonelabs.com/commit/b5b07d4a154ba84259a8355ffeb7110637ce6393))
+
 ## [1.0.1](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.0.0...v1.0.1) (2025-11-30)
 
 ### 🐛 Bug Fixes
