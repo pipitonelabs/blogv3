@@ -1,3 +1,9 @@
+## [1.1.2](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.1.1...v1.1.2) (2025-12-01)
+
+### 🐛 Bug Fixes
+
+* fixed giscus ([a1dc2a4](https://github.com/pipitonelabs/pipitonelabs.com/commit/a1dc2a4326c7883a393f81e321d79bbe82781d16))
+
 ## [1.1.1](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.1.0...v1.1.1) (2025-12-01)
 
 ### 🐛 Bug Fixes
