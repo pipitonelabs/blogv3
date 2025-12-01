@@ -171,13 +171,13 @@ export const integ: IntegrationUserConfig = {
   giscus: {
     enable: true,
     // GitHub repository for comments (format: owner/repo)
-    repo: 'pipitonelabs/blogv2',
+    repo: 'pipitonelabs/pipitonelabs.com',
     // Repository ID
-    repoId: 'R_kgDOQc1RCw',
+    repoId: 'R_kgDOQfiqWw',
     // Discussion category
     category: 'Comments',
     // Category ID
-    categoryId: 'DIC_kwDOQc1RC84CzFmp',
+    categoryId: 'DIC_kwDOQfiqW84CzRJw',
     // Mapping between the page and the discussion
     mapping: 'pathname',
     // Reactions enabled
