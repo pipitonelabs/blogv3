@@ -1,3 +1,9 @@
+## [1.0.6](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.0.5...v1.0.6) (2025-12-01)
+
+### 🐛 Bug Fixes
+
+* added sharp deps ([2feb06d](https://github.com/pipitonelabs/pipitonelabs.com/commit/2feb06d56763b3f26edbd7fcfde44a195fcd8caa))
+
 ## [1.0.5](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.0.4...v1.0.5) (2025-12-01)
 
 ### 🐛 Bug Fixes
