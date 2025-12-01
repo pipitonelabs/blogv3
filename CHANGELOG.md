@@ -1,3 +1,9 @@
+## [1.0.11](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.0.10...v1.0.11) (2025-12-01)
+
+### 🐛 Bug Fixes
+
+* image passthrough dockerfile changes ([7d6a749](https://github.com/pipitonelabs/pipitonelabs.com/commit/7d6a749d2c77d83da110248709df3113c1bb6552))
+
 ## [1.0.10](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.0.9...v1.0.10) (2025-12-01)
 
 ### 🐛 Bug Fixes
