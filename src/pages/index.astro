@@ -11,8 +11,6 @@ import Section from '@/components/home/Section.astro'
 import SkillLayout from '@/components/home/SkillLayout.astro'
 import config from '@/site-config'
 
-import avatar from '@/assets/avatar.png'
-
 const languages = ['Terraform', 'CloudFormation', 'CSS', 'PowerShell', 'YAML', 'Python']
 const infra = ['GitOps', 'Flux', 'VMware', 'SonicWALL', 'UniFi', 'F5']
 const platforms = ['AWS', 'Azure', 'Kubernetes', 'Docker', 'Talos Linux', 'Ubuntu']
@@ -21,38 +19,26 @@ const MAX_POSTS = 10
 const allPosts = await getBlogCollection()
 const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
 
-//const imagePath = config.logo.src
-//const images = import.meta.glob<{ default: ImageMetadata }>(
-//  '/src/assets/*.{jpeg,jpg,png,gif,avif,webp}'
-//)
-//if (!images[imagePath])
-//  throw new Error(
-//    `"${imagePath}" does not exist in glob: "src/assets/*.{jpeg,jpg,png,gif,avif,webp}"`
-//  )
+const imagePath = config.logo.src
+const images = import.meta.glob<{ default: ImageMetadata }>(
+  '/src/assets/*.{jpeg,jpg,png,gif,avif,webp}'
+)
+if (!images[imagePath])
+  throw new Error(
+    `"${imagePath}" does not exist in glob: "src/assets/*.{jpeg,jpg,png,gif,avif,webp}"`
+  )
 
 ---
 
 <PageLayout meta={{ title: 'Home' }} highlightColor='#659EB9'>
   <main class='flex w-full flex-col items-center'>
     <section class='animate mb-10 flex flex-col items-center gap-y-7' id='content-header'>
-      {/*
       <Image
         src={images[imagePath]()}
         alt={config.logo.alt || 'Logo'}
         class='h-28 w-auto rounded-full border p-1'
         loading='eager' 
       />
-      */}
-      <Image
-        src={avatar}
-        alt='profile'
-        width={256}
-        height={256}
-        class='h-28 w-auto rounded-full border p-1'
-        fetchpriority='high'
-        loading='eager'
-      />
-
       <div class='flex flex-col items-center gap-y-4'>
         <h1 class='text-3xl font-bold'>{config.author}</h1>
         <div class='flex flex-wrap justify-center gap-x-7 gap-y-3'>
