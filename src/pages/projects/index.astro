@@ -11,16 +11,16 @@ import KeyIcon from '@/assets/icons/key.svg'
 import wechat from '@/assets/wechat-qrcode.jpg'
 
 const headings = [
-  { depth: 2, slug: 'programs', text: 'Programs' },
-  { depth: 2, slug: 'learnings', text: 'Learnings' },
-  { depth: 2, slug: 'others', text: 'Others' },
-  { depth: 2, slug: 'gpg-signature', text: 'GPG Signature' },
-  { depth: 2, slug: 'sponsorship', text: 'Sponsorship' }
+  { depth: 2, slug: 'projects', text: 'Main Projects' },
+  //{ depth: 2, slug: 'learnings', text: 'Learnings' },
+  //{ depth: 2, slug: 'others', text: 'Others' },
+  //{ depth: 2, slug: 'gpg-signature', text: 'GPG Signature' },
+  //{ depth: 2, slug: 'sponsorship', text: 'Sponsorship' }
 ]
 ---
 
 <PageLayout title='Projects' {headings} view>
-  <p>Github Activities:</p>
+  <p>Github Activity:</p>
   <p>
     <Image
       src='https://ghchart.rshah.org/A0522D/pipitonelabs'
@@ -33,34 +33,35 @@ const headings = [
     If you think it would be useful or interesting to collaborate on a project, you can donate to
     support my work or contact me to discuss a project.
   </p>
-  <Button title='Checkout sponsorship' class='w-fit' href='#sponsorship'>
+  {/*<Button title='Checkout sponsorship' class='w-fit' href='#sponsorship'>
     <Icon class='size-5' name='receive-money' slot='before' />
-  </Button>
-
-  <h2 id='programs'>Programs</h2>
+  </Button>*/}
+  
+  <h2 id='programs'>Main Projects</h2>
   <ProjectSection
     projects={[
       {
-        name: '🎨 Astro Theme Pure',
-        description: 'A simple, fast and powerful blog & document theme built by Astro',
+        name: '💄 k8s-gitops',
+        description: 'My self-hosted Kubernetes HomeLab environment, powered by GitOps',
         links: [
-          { type: 'github', href: 'https://github.com/cworld1/astro-theme-pure' },
-          { type: 'site', href: 'https://astro-pure.js.org/' },
-          { type: 'doc', href: 'https://astro-pure.js.org/docs/list' },
+          { type: 'github', href: 'https://github.com/pipitonelabs/k8s-gitops' },
+          { type: 'site', href: 'https://status.pipitonelabs.com/' },
+          { type: 'doc', href: 'https://github.com/pipitonelabs/k8s-gitops/blob/main/README.md' },
           { type: 'release', href: 'https://www.npmjs.com/package/astro-pure' }
         ]
       },
       {
-        name: '💄 PKU Art',
-        description: 'A script to beautify pku course website',
+        name: '🤖 pipitonelabs.com',
+        description: 'This Blog - Automated',
         links: [
-          { type: 'github', href: 'https://github.com/zhuozhiyongde/pku-art' },
-          { type: 'site', href: 'https://github.com/zhuozhiyongde/pku-art' },
-          { type: 'doc', href: 'https://docs.arthals.ink/docs/pku-art' }
+          { type: 'github', href: 'https://github.com/pipitonelabs/pipitonelabs.com' },
+          { type: 'site', href: 'https://www.pipitonelabs.com' },
+          { type: 'doc', href: 'https://www.pipitonelabs.com/blog' }
         ]
       }
     ]}
   />
+  {/* 
   <Collapse title='Some old projects'>
     <ProjectSection
       projects={[
@@ -128,7 +129,7 @@ const headings = [
   <Button href='https://keys.openpgp.org/search?q=114514' title='Checkout my key' target='_blank'>
     <KeyIcon class='size-5' slot='before' />
   </Button>
-
+  
   <!-- sponsorship -->
   <h2 id='sponsorship'>Sponsorship</h2>
   <p>Please leave a message or contact me proactively after sponsorship.</p>
@@ -150,6 +151,7 @@ const headings = [
       { name: 'C*a (酷安@暴走の蜗牛)', amount: 2, date: '2019-07-02' }
     ]}
   />
+  */}
 </PageLayout>
 
 <style>

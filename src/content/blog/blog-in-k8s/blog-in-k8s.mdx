@@ -107,6 +107,7 @@ The Dockerfile has four distinct stages, each serving a specific purpose:
 For the life of me, I could not figure out why certain images that were being dyamically imported were only working on my Vercel deployment, but not when I ran my application in Kubernetes. Sharp needed some build tools during the build process, so I split this across stages - build tools in the base stage, runtime `libvips` in the final stage. The `SHARP_IGNORE_GLOBAL_LIBVIPS=1` environment variable tells Sharp to use its own bundled libraries instead of fighting with system versions.
 
 **The Adapter Switch Trick**
+
 Here's something I'm pretty proud of. My blog uses Vercel's adapter locally (for easy development), but I needed to switch to a standalone Node adapter for Kubernetes. Instead of maintaining two different config files, I used sed during the build:
 
 ```dockerfile title="Dockerfile"
