@@ -28,6 +28,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Set NODE_ENV to production
+ENV NODE_ENV=production
+
 # Copy built application and dependencies from build stage
 COPY --from=build /app/dist ./
 COPY --from=build /app/node_modules ./node_modules/

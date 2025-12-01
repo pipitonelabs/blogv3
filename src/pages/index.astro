@@ -11,6 +11,8 @@ import Section from '@/components/home/Section.astro'
 import SkillLayout from '@/components/home/SkillLayout.astro'
 import config from '@/site-config'
 
+import avatar from '@/assets/avatar.png'
+
 const languages = ['Terraform', 'CloudFormation', 'CSS', 'PowerShell', 'YAML', 'Python']
 const infra = ['GitOps', 'Flux', 'VMware', 'SonicWALL', 'UniFi', 'F5']
 const platforms = ['AWS', 'Azure', 'Kubernetes', 'Docker', 'Talos Linux', 'Ubuntu']
@@ -42,7 +44,7 @@ const allPostsByDate = sortMDByDate(allPosts).slice(0, MAX_POSTS)
       />
       */}
       <Image
-        src='https://gravatar.com/avatar/852046e1fb4620d1f56909b0d0bf0b8d0d640c6b79c6f629fa72a46de685c389?size=256'
+        src={avatar}
         alt='profile'
         width={256}
         height={256}
