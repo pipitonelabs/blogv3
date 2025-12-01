@@ -12,7 +12,7 @@ tags:
   - DevOps
   - Homelab
 heroImage: { src: './k8s.png', color: '#1567c5ff' }
-draft: true
+draft: false
 enableComment: true
 ---
 
@@ -64,7 +64,7 @@ jobs:
 
 This ensures only meaningful changes trigger new deployments, reducing unnecessary builds.
 
-## My Dockerfile Journey: From Slow Builds to Lightning-Fast Caching
+## From Slow Builds to Lightning-Fast Caching
 
 When I first started containerizing my Astro blog, my builds were taking forever - probably 5+ minutes every time I made a tiny change to a file, or a blog post. That's when I realized I needed to understand how Docker caching actually works.
 
@@ -79,63 +79,59 @@ The answer was obvious:
 2. **Dependencies** (package.json, bun.lock) - changes occasionally 
 3. **My actual code** - changes constantly
 
-By structuring my Dockerfile around this reality, I went from 5-minute rebuilds to 30-second builds for most changes. It sounds simple, but this insight completely transformed my workflow.
+By structuring my Dockerfile around this reality, I cut the build time just about in half - from 5-minutes to 2.5-minutes or less in some cases.
 
 ### The Build Stages Breakdown
 
-Think of my Dockerfile as having four distinct stages, each serving a specific purpose:
+The Dockerfile has four distinct stages, each serving a specific purpose:
 
-**Base Stage**: This is where I install all the heavy lifting stuff that rarely changes - the Python and build tools needed for Sharp (my image processing library). Once this builds, it stays cached for weeks.
+**Base Stage**: This is where I install stuff that rarely changes - the Python and build tools needed for Sharp (required for importing images dynamically). Once this builds, it stays cached for a while.
 
 **Dependencies Stage**: I copy just the package files first (`package.json`, `bun.lock`) and run `bun install`. This means when I update a dependency, only this stage and everything after it rebuilds.
 
-**Build Stage**: This is where the magic happens - I copy in all my source code, modify the Astro config for Kubernetes (more on that in a sec), and run the build. This stage rebuilds most frequently but is still pretty fast.
+**Build Stage**: This is where I copy in all my source code, modify the Astro config for Kubernetes (more on that in a sec), and run the build. This stage rebuilds most frequently but is still pretty fast.
 
 **Runtime Stage**: This creates the final, lean image with just Alpine Linux and the essential runtime files. Small, secure, and production-ready.
 
-### The Performance Numbers Don't Lie
+### Build Performance
 
 | What I Changed          | Before Optimization | After Caching |
 |----------------------|----------------------|---------------|
-| A CSS tweak          | Full rebuild (5m)    | 30 seconds    |
-| New npm package      | Full rebuild (5m)    | 1 minute      |
-| Base image update    | Full rebuild         | Full rebuild  |
+| A CSS tweak          | Full rebuild (5m+)    | 2.5 minutes   |
+| New blog post        | Full rebuild (5m+)    | 2.5 minutes   |
 
-### The Tweaks That Made Everything Click
+### Some Tweaks That Fixed Things
 
-**Sharp (Image Processing) Was a Beast**
-Sharp needed some serious build tools during compilation, but only needed the lightweight runtime library later. So I split this across stages - build tools in the base stage, runtime `vips` in the final stage. The `SHARP_IGNORE_GLOBAL_LIBVIPS=1` environment variable was a game-changer too - it tells Sharp to use its own bundled libraries instead of fighting with system versions.
+**Sharp Was a Pain** 
+
+For the life of me, I could not figure out why certain images that were being dyamically imported were only working on my Vercel deployment, but not when I ran my application in Kubernetes. Sharp needed some build tools during the build process, so I split this across stages - build tools in the base stage, runtime `libvips` in the final stage. The `SHARP_IGNORE_GLOBAL_LIBVIPS=1` environment variable tells Sharp to use its own bundled libraries instead of fighting with system versions.
 
 **The Adapter Switch Trick**
-Here's something I'm pretty proud of. My blog uses Vercel's adapter locally (for easy development), but I needed to switch to a standalone Node adapter for Kubernetes. Instead of maintaining two different config files, I used a clever sed command during the build:
+Here's something I'm pretty proud of. My blog uses Vercel's adapter locally (for easy development), but I needed to switch to a standalone Node adapter for Kubernetes. Instead of maintaining two different config files, I used sed during the build:
 
-```dockerfile
+```dockerfile title="Dockerfile"
 RUN sed -i '2a import node from "@astrojs/node";' astro.config.ts && \
     sed -i 's/adapter: vercel(),/adapter: node({ mode: "standalone" }),/' astro.config.ts && \
     bun add @astrojs/node
 ```
 
-This means one codebase works everywhere. No branches, no environment-specific configs, no headaches.
+This means one codebase works everywhere. I'm able to:
 
-**Security Didn't Feel Like a Burden**
+1. Push my commits to main
+2. Trigger the Vercel deployment
+3. Trigger [build-k8s.yaml](https://github.com/pipitonelabs/pipitonelabs.com/blob/main/.github/workflows/build-k8s.yaml) to create new version tags and build a new image
+4. Next time Renovate runs, it creates a PR
+5. After the merge completes, the new image is deployed in my Kubernetes cluster
+
+That was a cool experiment and was extremely time consuming to figure out!
+
+**Shift-Left Security**
+
 I built security into the process instead of bolting it on at the end. The `.dockerignore` file keeps sensitive stuff out of the build (no accidentally copying `.env` files or git history), and the final stage runs as a non-root user. Kubernetes enforces this further with pod security contexts.
 
-The result? A 90% reduction in build times, smaller images, and a setup that's actually secure by default.
+The result? A nice reduction in build times, smaller images, and a setup that's secure by default.
 
-
-## Additional Production Hardening
-
-In addition to the Dockerfile's built-in security (non-root user, `.dockerignore`), Kubernetes PodSecurityContext enforces:
-
-```yaml title="Pod Security Context"
-securityContext:
-  runAsNonRoot: true
-  runAsUser: 1001
-  runAsGroup: 1001
-  fsGroup: 1001
-  seccompProfile:
-    type: RuntimeDefault
-```
+## Additional Security Hardening
 
 Security should be a primary concern in production containerization. Here are the critical practices I've implemented:
 
@@ -143,7 +139,7 @@ Security should be a primary concern in production containerization. Here are th
 
 A `.dockerignore` file prevents unnecessary files from being copied into the build context, reducing image size and attack surface:
 
-```gitignore title=".dockerignore"
+```bash title=".dockerignore"
 # Dependencies and build artifacts
 node_modules/
 dist/
@@ -179,7 +175,7 @@ Thumbs.db
 
 Running containers as root is a security anti-pattern. The runtime stage creates a dedicated user:
 
-```dockerfile title="Runtime Stage Security"
+```dockerfile title="Dockerfile"
 FROM node:18-alpine
 
 # Create non-root user before copying files
@@ -205,7 +201,7 @@ CMD ["node", "dist/server/entry.mjs"]
 
 ### Container Security in Kubernetes
 
-Kubernetes enhances container security through additional layers:
+In addition to the Dockerfile's security, I updated my `helmrelease.yaml` to include a PodSecurityContext:
 
 ```yaml title="Pod Security Context"
 securityContext:
@@ -231,8 +227,6 @@ Keeping dependencies up-to-date is crucial for security and features. I use Reno
 - **PR Creation**: When new versions are detected, Renovate creates pull requests with changelogs.
 - **Merging Triggers Deployment**: Once I merge a PR, the CI pipeline builds a new image, and Flux deploys it.
 
-The workflow uses a GitHub App for authentication, ensuring secure access without personal tokens.
-
 ```yaml title=".github/workflows/renovate.yaml"
 - name: Run Renovate
   uses: renovatebot/github-action@03026bd55840025343414baec5d9337c5f9c7ea7 # v44.0.4
@@ -242,11 +236,11 @@ The workflow uses a GitHub App for authentication, ensuring secure access withou
     RENOVATE_AUTODISCOVER_FILTER: "${{ github.repository }}"
 ```
 
-This setup keeps my blog current with the latest Astro, Node.js, and other dependencies without manual intervention.
+This setup keeps my blog current with the latest release package with minimal manual intervention - I have to actually click the "Merge pull request" button after I complete my review.
 
-## Deployment with Helm and Flux
+## Kubernetes Deployment with Helm and Flux
 
-For deployment, I use Flux's HelmRelease powered by the [bjw-s-labs/app-template](https://github.com/bjw-s-labs/helm-charts) chart. This replaces writing full custom Helm charts for every app with concise `values.yaml` files (50-150 lines). It leverages the `bjw-s/common` library for best practices like security contexts, probes, Gateway API routes, and schema validation. A single chart upgrade propagates features and fixes across all my apps instantly, keeping my Git repo lean and drift-free.
+For deployment, I use a [helmrelease.yaml](https://github.com/pipitonelabs/k8s-gitops/blob/main/kubernetes/apps/default/blog/app/helmrelease.yaml) file powered by the [bjw-s-labs/app-template](https://github.com/bjw-s-labs/helm-charts) chart. This replaces writing full custom Helm charts for every app with a `values.yaml` file which can be incorporated into the `helmrelease.yaml` file itself. A single chart upgrade propagates best practices, features and fixes across all my apps instantly.
 
 The HelmRelease specifies the image tag (updated manually or via automation):
 
@@ -282,19 +276,25 @@ The HelmRelease configures the route directly:
 External-DNS syncs the hostname to DNS, Envoy Gateway (via `envoy-external`) handles ingress routing, and Cloudflare Tunnel provides secure exposure without open ports.
 
 ### Envoy Gateway
-Acts as the ingress controller built for the Gateway API, routing external traffic to internal services. It supports advanced features like TLS termination and load balancing.
+Envoy Gateway is built on **Envoy Proxy** (the actual data plane) and implements the **Gateway API** specification. Think of it this way:
+
+- **Envoy Proxy**: The high-performance L7 proxy that actually handles traffic filtering, load balancing, and routing
+- **Gateway API**: The Kubernetes standard API for configuring ingress/gateway resources (replacing the old Ingress API)
+- **Envoy Gateway**: The control plane that translates Gateway API configurations into Envoy Proxy configurations
+
+I just write my routes in the HelmRelease like normal Kubernetes resources, and I can expose a service internally or externally.
 
 ### Cloudflare Tunnel
 Provides secure, encrypted tunnels from my homelab to Cloudflare's edge. This avoids exposing ports directly on my home network, enhancing security.
 
 Together, these tools create a seamless path from `https://blog.pipitonelabs.com` to my Kubernetes pods.
 
-## Conclusion
+## Summary
 
 This setup demonstrates the power of combining open-source tools for a robust, automated deployment pipeline. From local development to global access, every step is streamlined and secure.
 
-The beauty of Kubernetes in a homelab is the learning opportunity—it mirrors production environments while giving full control. If you're considering a similar setup, start small: get a basic deployment working, then layer on automation.
+The beauty of Kubernetes in a homelab is the learning opportunity - it mirrors production environments while giving full control. If you're considering a similar setup, start small: get a basic deployment working, then layer on automation.
 
 ---
 
-*Have questions about the setup? Drop a comment below.*
+*Have questions or want to point out mistakes, inaccuracies or improvements related to my setup? Drop a comment below.*
