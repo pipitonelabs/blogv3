@@ -17,8 +17,10 @@ RUN bun add @astrojs/node
 COPY . .
 
 # Modify astro.config.ts to use Node adapter instead of Vercel
+# Also use passthrough image service (no Sharp optimization needed in container)
 RUN sed -i '1a import node from "@astrojs/node";' astro.config.ts && \
-    sed -i 's/adapter: vercel(),/adapter: node({ mode: "standalone" }),/' astro.config.ts
+    sed -i 's/adapter: vercel(),/adapter: node({ mode: "standalone" }),/' astro.config.ts && \
+    sed -i "s/entrypoint: 'astro\/assets\/services\/sharp'/entrypoint: 'astro\/assets\/services\/noop'/" astro.config.ts
 
 # Build the application
 RUN bun run build
@@ -28,22 +30,14 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install Sharp dependencies for Alpine
-RUN apk add --no-cache \
-    vips-dev \
-    fftw-dev \
-    build-base \
-    libc6-compat \
-    python3
+# Minimal dependencies (no Sharp needed with noop image service)
+RUN apk add --no-cache libc6-compat
 
 # Copy built application from build stage
 COPY --from=build /app/dist ./
 
 # Copy node_modules from build stage
 COPY --from=build /app/node_modules ./node_modules/
-
-# Rebuild Sharp for Alpine (rebuilds native binaries for current platform)
-RUN npm rebuild sharp
 
 # Expose port 4321
 EXPOSE 4321
