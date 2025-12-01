@@ -1,3 +1,9 @@
+## [1.0.13](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.0.12...v1.0.13) (2025-12-01)
+
+### 🐛 Bug Fixes
+
+* testing ([7e9062b](https://github.com/pipitonelabs/pipitonelabs.com/commit/7e9062b7a520c4f605ea71ba911fbb0ebb124fe9))
+
 ## [1.0.12](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.0.11...v1.0.12) (2025-12-01)
 
 ### 🐛 Bug Fixes
