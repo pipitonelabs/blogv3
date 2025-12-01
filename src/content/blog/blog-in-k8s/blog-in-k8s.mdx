@@ -2,7 +2,7 @@
 title: Deploying My Astro Blog in a Self-Hosted Kubernetes HomeLab
 description: 'A comprehensive guide to deploying an Astro blog in a self-hosted Kubernetes HomeLab using GitHub Actions and Renovate.'
 publishDate: 2025-11-29
-updatedDate: 2025-11-30
+updatedDate: 2025-12-01
 tags:
   - Kubernetes
   - Astro
@@ -66,20 +66,51 @@ This ensures only meaningful changes trigger new deployments, reducing unnecessa
 
 ## Docker Build Details
 
-The multi-stage [Dockerfile](https://github.com/pipitonelabs/pipitonelabs.com/blob/main/Dockerfile) enables **dual-deployment** by switching from Vercel serverless to Node standalone during build.
+The optimized multi-stage [Dockerfile](https://github.com/pipitonelabs/pipitonelabs.com/blob/main/Dockerfile) enables **dual-deployment** with intelligent layer caching for faster builds.
 
-### Multi-Stage Build Flow
+### Multi-Stage Build Architecture
 
-1. **Bun Install**: Dependencies + local packages
-2. **Node Adapter**: `bun add @astrojs/node`
-3. **Config Switch**: sed replaces Vercel → Node standalone
-4. **Astro Build**: Creates server/entry.mjs
-5. **Runtime**: Alpine Node with dist + node_modules
+```
+Base Stage (System deps)
+    ↓
+Dependencies Stage (npm packages)  
+    ↓
+Build Stage (Source code + Astro build)
+    ↓
+Runtime Stage (Alpine with Sharp runtime)
+```
+
+**Build Flow**:
+1. **Base**: Install Sharp dependencies (`python3`, `build-essential`, `libvips-dev`)
+2. **Dependencies**: `bun install` with package files only
+3. **Build**: Copy source code, switch adapter, run `bun run build`
+4. **Runtime**: Alpine Node with Sharp runtime (`vips`)
+
+### Critical Docker Commands for Sharp
+
+These commands are essential for Sharp image processing:
+
+```dockerfile title="Sharp System Dependencies"
+# Base stage - build dependencies
+RUN apt-get update && apt-get install -y \
+    python3         # Required for Sharp compilation
+    build-essential # C++ compiler for native modules
+    libvips-dev     # Sharp's underlying image library
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure Sharp environment
+ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
+
+# Runtime stage - runtime dependencies
+RUN apk add --no-cache vips  # Alpine package for libvips
+```
 
 ### Adapter Switch Deep Dive
 
 ```dockerfile title="Dockerfile"
-RUN sed -i '1a import node from "@astrojs/node";' astro.config.ts && \
+# Insert Node adapter import at line 2
+RUN sed -i '2a import node from "@astrojs/node";' astro.config.ts && \
+    # Replace Vercel adapter with Node standalone
     sed -i 's/adapter: vercel(),/adapter: node({ mode: "standalone" }),/' astro.config.ts
 ```
 
@@ -123,6 +154,119 @@ import avatarImage from '@/assets/avatar.png'
 **Why**: Vite glob is adapter-sensitive at runtime. Static imports are universal.
 
 This makes the same code work for Vercel preview + k8s production.
+
+## Optimized Docker Layer Caching
+
+After experiencing slow build times, I optimized the Dockerfile with intelligent layer caching strategies to minimize rebuild times during development.
+
+### Layer Caching Strategy
+
+The key principle is ordering Docker instructions from **least frequently changing** to **most frequently changing**:
+
+1. **Base Stage (Rarest Changes)**: System dependencies and Sharp libraries
+2. **Dependencies Stage (Package Files)**: npm/bun packages 
+3. **Build Stage (Source Code)**: Application code and build process
+
+```dockerfile title="Dockerfile - Optimized Multi-Stage Build"
+# Base stage with system dependencies (cached layer)
+FROM oven/bun:1 AS base
+
+# Install Sharp system dependencies (cached across builds)
+RUN apt-get update && apt-get install -y \
+    python3 build-essential libvips-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure Sharp to use bundled libvips
+ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
+
+# Dependencies stage (package files)
+FROM base AS deps
+
+# Copy package files first (leverages Docker layer caching)
+COPY package*.json bun.lock ./
+RUN bun install
+
+# Build stage (source code)
+FROM deps AS build
+COPY . .
+RUN bun run build
+```
+
+### Performance Impact
+
+| Change Type | Before Optimization | After Optimization |
+|-------------|-------------------|-------------------|
+| **Source code changes** | Full rebuild (2-5 min) | Final stage only (~30 sec) |
+| **Dependency updates** | Full rebuild (2-5 min) | Dependencies stage only (~1 min) |
+
+## Sharp Image Processing: Critical Configuration
+
+Sharp (the high-performance image processing library) requires specific system dependencies and configuration to work reliably in containerized environments.
+
+### System Dependencies
+
+Sharp needs **native libraries** for image processing:
+
+```bash
+# Build-time dependencies (for compiling native modules)
+python3        # Required for node-gyp compilation
+build-essential # C/C++ compiler toolchain  
+libvips-dev    # Sharp's underlying image library
+
+# Runtime dependencies (for executing Sharp)
+vips           # Alpine package for libvips runtime
+```
+
+### Critical Sharp Commands
+
+These commands are essential for Sharp to function properly:
+
+```dockerfile title="Sharp Configuration Commands"
+# 1. Install build dependencies in build stage
+RUN apt-get update && apt-get install -y \
+    python3 build-essential libvips-dev
+
+# 2. Configure Sharp environment variable
+ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
+
+# 3. Install runtime dependencies in runtime stage  
+RUN apk add --no-cache vips
+```
+
+### Why SHARP_IGNORE_GLOBAL_LIBVIPS=1?
+
+This environment variable tells Sharp to **use its bundled version of libvips** instead of any system-installed version. This ensures:
+
+- **Consistent behavior** across different environments
+- **No conflicts** with system libvips versions
+- **Faster builds** since Sharp doesn't recompile
+- **Reliable image processing** regardless of host system
+
+### Common Sharp Issues in Docker
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `apk: not found` | Using Alpine commands on Debian base | Use `apt-get` for `oven/bun:1` |
+| `Cannot find module` | Wrong entry path in CMD | Use `dist/server/entry.mjs` |
+| Sharp build failures | Missing system dependencies | Install `python3 build-essential libvips-dev` |
+| Runtime errors | Missing libvips runtime | Add `ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1` |
+
+### Testing Sharp in Docker
+
+To verify Sharp works correctly:
+
+```bash
+# Build the image
+docker build -t my-astro-app .
+
+# Run with port mapping
+docker run -p 4321:4321 my-astro-app
+
+# Test image processing endpoint
+curl -I http://localhost:4321
+```
+
+The Astro site uses Sharp automatically for optimized images through the `astro:assets` integration.
 
 ## Automated Dependency Management with Renovate
 

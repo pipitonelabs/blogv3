@@ -1,9 +1,9 @@
-# Build stage
-FROM oven/bun:1 AS build
+# Base stage with system dependencies (cached layer)
+FROM oven/bun:1 AS base
 
 WORKDIR /app
 
-# Install system dependencies for Sharp (using apt for Debian-based image)
+# Install system dependencies for Sharp (cached layer - rarely changes)
 RUN apt-get update && apt-get install -y \
     python3 \
     build-essential \
@@ -13,22 +13,28 @@ RUN apt-get update && apt-get install -y \
 # Configure Sharp to use bundled libvips
 ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
 
-# Copy package files and local packages
+# Dependencies stage (cached layer)
+FROM base AS deps
+
+# Copy only package files first (leverages Docker layer caching)
 COPY package*.json bun.lock ./
 COPY packages/ ./packages/
 
-# Install dependencies (including local packages)
+# Install dependencies (cached unless package files change)
 RUN bun install
 
-# Install @astrojs/node for standalone deployment
-RUN bun add @astrojs/node
+# Build stage
+FROM deps AS build
 
-# Copy source code
+# Copy remaining source code (after dependencies are installed)
 COPY . .
 
 # Modify astro.config.ts to use Node adapter instead of Vercel
 RUN sed -i '2a import node from "@astrojs/node";' astro.config.ts && \
     sed -i 's/adapter: vercel(),/adapter: node({ mode: "standalone" }),/' astro.config.ts
+
+# Install @astrojs/node for standalone deployment
+RUN bun add @astrojs/node
 
 # Build the application
 RUN bun run build
