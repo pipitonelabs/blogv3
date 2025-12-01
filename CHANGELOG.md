@@ -1,3 +1,9 @@
+## [1.1.1](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.1.0...v1.1.1) (2025-12-01)
+
+### 🐛 Bug Fixes
+
+* updated coffee link in blog footer ([6fab523](https://github.com/pipitonelabs/pipitonelabs.com/commit/6fab523b251b6ad272c31c83e7ab69ca60cb8849))
+
 ## [1.1.0](https://github.com/pipitonelabs/pipitonelabs.com/compare/v1.0.19...v1.1.0) (2025-12-01)
 
 ### 🚀 Features
